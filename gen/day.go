@@ -155,7 +155,7 @@ func getInput(day int) ([]byte, error) {
 		return nil, fmt.Errorf("AOC_SESSION_TOKEN not set")
 	}
 
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://adventofcode.com/2022/day/%d/input", day), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://adventofcode.com/2023/day/%d/input", day), nil)
 	if err != nil {
 		return nil, err
 	}
