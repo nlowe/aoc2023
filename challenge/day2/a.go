@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/nlowe/aoc2023/challenge"
 	"github.com/nlowe/aoc2023/util"
 	"github.com/nlowe/aoc2023/util/gmath"
-	"github.com/spf13/cobra"
 )
 
 func aCommand() *cobra.Command {

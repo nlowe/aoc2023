@@ -3,8 +3,9 @@ package day2
 import (
 	"fmt"
 
-	"github.com/nlowe/aoc2023/challenge"
 	"github.com/spf13/cobra"
+
+	"github.com/nlowe/aoc2023/challenge"
 )
 
 func bCommand() *cobra.Command {
