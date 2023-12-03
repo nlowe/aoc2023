@@ -42,22 +42,12 @@ func (t Container[T]) PathNeighbors() (results []astar.Pather) {
 		return
 	}
 
-	for _, delta := range []struct {
-		x int
-		y int
-	}{
-		{-1, 0},
-		{1, 0},
-		{0, -1},
-		{0, 1},
-	} {
-		c, ok := t.tileMap.ContainerAt(t.x+delta.x, t.y+delta.y)
-		if !ok {
-			continue
-		}
+	t.tileMap.WalkCardinalNeighbors(t.x, t.y, func(_ T, nx int, ny int) {
+		// Walk only gives us valid tiles, we don't have to check if it exists in the map
+		c, _ := t.tileMap.ContainerAt(nx, ny)
 
 		results = append(results, c)
-	}
+	})
 
 	return
 }
@@ -187,6 +177,57 @@ func (t *Map[T]) AllContainersWith(v T) (results []Container[T]) {
 	}
 
 	return results
+}
+
+// Walk iterates over all values in the map starting at 0,0 one row at a time. Each tile will be visited exactly once.
+//
+// It is OK to change the value of tiles while walking.
+func (t *Map[T]) Walk(visit func(T, int, int)) {
+	for i, c := range t.tiles {
+		visit(c.Value, i%t.w, i/t.w)
+	}
+}
+
+// WalkCardinalNeighbors calls the visit function on neighbors directly North, South, East, or West of the specified
+// location in the map, if they also exist in the map.
+//
+// It is OK to change the value of tiles while walking.
+func (t *Map[T]) WalkCardinalNeighbors(x, y int, visit func(T, int, int)) {
+	for _, d := range []struct {
+		x, y int
+	}{
+		{-1, 0},
+		{1, 0},
+		{0, -1},
+		{0, 1},
+	} {
+		if r, ok := t.TileAt(x+d.x, y+d.y); ok {
+			visit(r, x+d.x, y+d.y)
+		}
+	}
+}
+
+// WalkAllNeighbors calls the visit function on the 8 surrounding tiles of the specified tile, if they also exist in the
+// map.
+//
+// It is OK to change the value of tiles while walking.
+func (t *Map[T]) WalkAllNeighbors(x, y int, visit func(T, int, int)) {
+	// Start by walking cardinals
+	t.WalkCardinalNeighbors(x, y, visit)
+
+	// Then Walk diagonals
+	for _, d := range []struct {
+		x, y int
+	}{
+		{-1, -1},
+		{-1, 1},
+		{1, -1},
+		{1, 1},
+	} {
+		if r, ok := t.TileAt(x+d.x, y+d.y); ok {
+			visit(r, x+d.x, y+d.y)
+		}
+	}
 }
 
 // PathBetween uses the A-Star path finding algorithm to find the most efficient path between the two locations in the
