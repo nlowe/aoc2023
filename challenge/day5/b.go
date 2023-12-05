@@ -5,8 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"golang.org/x/exp/maps"
-
 	"github.com/nlowe/aoc2023/util"
 
 	"github.com/spf13/cobra"
@@ -24,47 +22,6 @@ func bCommand() *cobra.Command {
 	}
 }
 
-func convertManyVia(mapping map[span]span, v span) []span {
-	// Given some input span v..v and this mapping
-	//   a..a -> b..b
-	//   c..c -> d..d
-	//
-	// Produce output spans mapped following the rules
-	//
-	// v vv vvvvvv v v vvvvv
-	//  |aa aaaaaa|
-	//     |bbbbbb b b|
-	//              |c c|
-	//                |d dd|
-	// v|vv|bbbbbb|v v d|vv|
-
-	// Sort the mapping by the start of each span
-	spans := maps.Keys(mapping)
-	slices.SortFunc(spans, func(i, j span) int {
-		return i.start - j.start
-	})
-
-	result := make([]span, 0, 3)
-
-	for _, k := range spans {
-		start, overlap, end := mapping[k].intersect(v)
-
-		if start.length > 0 {
-			result = append(result, start)
-		}
-
-		if overlap.length > 0 {
-			result = append(result, overlap)
-		}
-
-		if end.length > 0 {
-			result = append(result, overlap)
-		}
-	}
-
-	return result
-}
-
 func partB(challenge *challenge.Input) int {
 	parts := challenge.Sections()
 
@@ -77,25 +34,13 @@ func partB(challenge *challenge.Input) int {
 		}
 	}
 
-	seedToSoil := parseMap(<-parts)
-	soilToFertilizer := parseMap(<-parts)
-	fertilizerToWater := parseMap(<-parts)
-	waterToLight := parseMap(<-parts)
-	lightToTemp := parseMap(<-parts)
-	tempToHumidity := parseMap(<-parts)
-	humidityToLocation := parseMap(<-parts)
+	converter := makeConverter(parts)
 
-	locations := make([]int, len(seeds))
-	for i, seed := range seeds {
-		v := convertVia(seedToSoil, int(util.MustAtoI(seed)))
-		v = convertVia(soilToFertilizer, v)
-		v = convertVia(fertilizerToWater, v)
-		v = convertVia(waterToLight, v)
-		v = convertVia(lightToTemp, v)
-		v = convertVia(tempToHumidity, v)
-		locations[i] = convertVia(humidityToLocation, v)
+	var locations []span
+	for _, seed := range seedRanges {
+		locations = append(locations, converter(seed)...)
 	}
 
-	slices.Sort(locations)
-	return locations[0]
+	slices.SortFunc(locations, span.Less)
+	return locations[0].start
 }

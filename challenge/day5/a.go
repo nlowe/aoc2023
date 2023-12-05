@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/maps"
 
 	"github.com/nlowe/aoc2023/challenge"
 	"github.com/nlowe/aoc2023/util"
@@ -21,57 +22,54 @@ func aCommand() *cobra.Command {
 	}
 }
 
-type span struct {
-	start  int
-	length int
-}
+func convertVia(mapping map[span]span, v span) []span {
+	// Given some input span v..v and this mapping
+	//   a..a -> b..b
+	//   c..c -> d..d
+	//
+	// Produce output spans mapped following the rules
+	//
+	// v vv vvvvvv v v vvvvv
+	//  |aa aaaaaa|
+	//     |bbbbbb b b|
+	//              |c c|
+	//                |d dd|
+	// v|vv|bbbbbb|v v d|vv|
 
-func (s span) contains(v int) bool {
-	return v >= s.start && v < (s.start+s.length)
-}
+	// Sort the mapping by the start of each span
+	spans := maps.Keys(mapping)
+	slices.SortFunc(spans, span.Less)
 
-// intersect returns the start, overlap, and end spans of other compared against s
-//
-// # For example, given s..s and o..o
-//
-// # There are five cases
-//
-//  1. S entirely contains O
-//     ..|s ss s|
-//     ....|oo|
-//     Which returns |s|, |oo|, |s|
-//
-//  2. S partially overlaps with O at the start
-//     ..|sss s|
-//     ......|o o|
-//     Which returns |sss|, |o|, ||
-//
-//  3. S partially overlaps with O at the end
-//     ....|s sss|
-//     ..|o o|
-//     Which returns ||, |o|, |sss|
-//
-//  4. S is entirely contained within O
-//     ....|s|
-//     ..|o o o|
-//     Which returns ||, |s|, ||
-//
-//  4. S does not overlap with O
-//     ..|sss|
-//     ..........|ooo|
-//     Which returns |sss|, ||, ||
-func (s span) intersect(other span) (span, span, span) {
-	return s, s, s
-}
+	result := make([]span, 0, 3)
 
-func convertVia(mapping map[span]span, v int) int {
-	for k, d := range mapping {
-		if k.contains(v) {
-			return d.start + (v - k.start)
+	for _, k := range spans {
+		start, overlap, end := mapping[k].intersect(v)
+
+		if start.length > 0 {
+			result = append(result, start)
+		}
+
+		if overlap.length > 0 {
+			result = append(result, overlap)
+		}
+
+		if end.length > 0 {
+			result = append(result, overlap)
 		}
 	}
 
-	return v
+	return result
+}
+
+func convertManyVia(mapping map[span]span, vs []span) []span {
+	result := make([]span, 0, len(vs)*3)
+	for _, v := range vs {
+		result = append(result, convertVia(mapping, v)...)
+	}
+
+	// TODO: We need to collapse neighboring contiguous ranges to prevent memory from exploding
+
+	return result
 }
 
 func partA(challenge *challenge.Input) int {
@@ -79,6 +77,18 @@ func partA(challenge *challenge.Input) int {
 
 	seeds := strings.Fields(<-parts)[1:]
 
+	converter := makeConverter(parts)
+
+	var locations []span
+	for _, seed := range seeds {
+		locations = append(locations, converter(span{start: util.MustAtoI(seed), length: 1})...)
+	}
+
+	slices.SortFunc(locations, span.Less)
+	return locations[0].start
+}
+
+func makeConverter(parts <-chan string) func(span) []span {
 	seedToSoil := parseMap(<-parts)
 	soilToFertilizer := parseMap(<-parts)
 	fertilizerToWater := parseMap(<-parts)
@@ -87,19 +97,15 @@ func partA(challenge *challenge.Input) int {
 	tempToHumidity := parseMap(<-parts)
 	humidityToLocation := parseMap(<-parts)
 
-	locations := make([]int, len(seeds))
-	for i, seed := range seeds {
-		v := convertVia(seedToSoil, int(util.MustAtoI(seed)))
-		v = convertVia(soilToFertilizer, v)
-		v = convertVia(fertilizerToWater, v)
-		v = convertVia(waterToLight, v)
-		v = convertVia(lightToTemp, v)
-		v = convertVia(tempToHumidity, v)
-		locations[i] = convertVia(humidityToLocation, v)
+	return func(seed span) []span {
+		v := convertVia(seedToSoil, seed)
+		v = convertManyVia(soilToFertilizer, v)
+		v = convertManyVia(fertilizerToWater, v)
+		v = convertManyVia(waterToLight, v)
+		v = convertManyVia(lightToTemp, v)
+		v = convertManyVia(tempToHumidity, v)
+		return convertManyVia(humidityToLocation, v)
 	}
-
-	slices.Sort(locations)
-	return locations[0]
 }
 
 func parseMap(section string) map[span]span {
