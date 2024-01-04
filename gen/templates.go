@@ -126,6 +126,8 @@ import (
 )
 
 func Test{{ .AB }}(t *testing.T) {
+	t.Skip("Not Implemented")
+
 	input := challenge.FromLiteral("foobar")
 
 	result := part{{ .AB | toUpper }}(input)
