@@ -11,10 +11,30 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/nlowe/aoc2023/challenge/day1"
+	"github.com/nlowe/aoc2023/challenge/day10"
+	"github.com/nlowe/aoc2023/challenge/day11"
+	"github.com/nlowe/aoc2023/challenge/day12"
+	"github.com/nlowe/aoc2023/challenge/day13"
+	"github.com/nlowe/aoc2023/challenge/day14"
+	"github.com/nlowe/aoc2023/challenge/day15"
+	"github.com/nlowe/aoc2023/challenge/day16"
+	"github.com/nlowe/aoc2023/challenge/day17"
+	"github.com/nlowe/aoc2023/challenge/day18"
+	"github.com/nlowe/aoc2023/challenge/day19"
 	"github.com/nlowe/aoc2023/challenge/day2"
+	"github.com/nlowe/aoc2023/challenge/day20"
+	"github.com/nlowe/aoc2023/challenge/day21"
+	"github.com/nlowe/aoc2023/challenge/day22"
+	"github.com/nlowe/aoc2023/challenge/day23"
+	"github.com/nlowe/aoc2023/challenge/day24"
+	"github.com/nlowe/aoc2023/challenge/day25"
 	"github.com/nlowe/aoc2023/challenge/day3"
 	"github.com/nlowe/aoc2023/challenge/day4"
 	"github.com/nlowe/aoc2023/challenge/day5"
+	"github.com/nlowe/aoc2023/challenge/day6"
+	"github.com/nlowe/aoc2023/challenge/day7"
+	"github.com/nlowe/aoc2023/challenge/day8"
+	"github.com/nlowe/aoc2023/challenge/day9"
 	"github.com/nlowe/aoc2023/challenge/example"
 )
 
@@ -25,6 +45,26 @@ func addDays(root *cobra.Command) {
 	day3.AddCommandsTo(root)
 	day4.AddCommandsTo(root)
 	day5.AddCommandsTo(root)
+	day6.AddCommandsTo(root)
+	day7.AddCommandsTo(root)
+	day8.AddCommandsTo(root)
+	day9.AddCommandsTo(root)
+	day10.AddCommandsTo(root)
+	day11.AddCommandsTo(root)
+	day12.AddCommandsTo(root)
+	day13.AddCommandsTo(root)
+	day14.AddCommandsTo(root)
+	day15.AddCommandsTo(root)
+	day16.AddCommandsTo(root)
+	day17.AddCommandsTo(root)
+	day18.AddCommandsTo(root)
+	day19.AddCommandsTo(root)
+	day20.AddCommandsTo(root)
+	day21.AddCommandsTo(root)
+	day22.AddCommandsTo(root)
+	day23.AddCommandsTo(root)
+	day24.AddCommandsTo(root)
+	day25.AddCommandsTo(root)
 }
 
 type prof interface {
