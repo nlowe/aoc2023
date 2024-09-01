@@ -2,12 +2,17 @@ package tilemap
 
 import (
 	"fmt"
+	"io"
+	"iter"
+	"slices"
 
 	"github.com/beefsack/go-astar"
 
 	"github.com/nlowe/aoc2023/challenge"
 	"github.com/nlowe/aoc2023/util/gmath"
 )
+
+type Point struct{ X, Y int }
 
 // Container represents the intermediate object stored in the tile map. This container type implements astar.Pather
 // with the following assumptions:
@@ -22,12 +27,11 @@ type Container[T comparable] struct {
 
 	tileMap *Map[T]
 
-	x int
-	y int
+	position Point
 }
 
 func (t Container[T]) Location() (int, int) {
-	return t.x, t.y
+	return t.position.X, t.position.Y
 }
 
 func (t Container[T]) PathNeighbors() (results []astar.Pather) {
@@ -42,12 +46,11 @@ func (t Container[T]) PathNeighbors() (results []astar.Pather) {
 		return
 	}
 
-	t.tileMap.WalkCardinalNeighbors(t.x, t.y, func(_ T, nx int, ny int) {
-		// Walk only gives us valid tiles, we don't have to check if it exists in the map
-		c, _ := t.tileMap.ContainerAt(nx, ny)
+	for _, pos := range t.tileMap.CardinalNeighbors(t.position.X, t.position.Y) {
+		c, _ := t.tileMap.ContainerAt(pos.X, pos.Y)
 
 		results = append(results, c)
-	})
+	}
 
 	return
 }
@@ -68,7 +71,7 @@ func (t Container[T]) PathEstimatedCost(to astar.Pather) float64 {
 		return t.tileMap.EstimateFunc(t, toSpot)
 	}
 
-	return float64(gmath.ManhattanDistance(t.x, t.y, toSpot.x, toSpot.y))
+	return float64(gmath.ManhattanDistance(t.position.X, t.position.Y, toSpot.position.X, toSpot.position.Y))
 }
 
 // Map represents a fixed size grid of tiles. The top-left tile is [0,0], the bottom-right tile is [w, h]. Tiles are
@@ -91,14 +94,14 @@ type Map[T comparable] struct {
 
 // FromInput creates a Map of runes from the input where each line is one row in the map and each rune in each line
 // is a column.
-func FromInput(input *challenge.Input) *Map[rune] {
+func FromInput(input io.Reader) *Map[rune] {
 	return FromInputOf[rune](input, ToRunes)
 }
 
 // FromInputOf creates a Map of the specified type from the input where each line is one row in the map and each
 // rune in each line is a column whose value is computed using the provided conversion function.
-func FromInputOf[T comparable](input *challenge.Input, convert func(rune) T) *Map[T] {
-	lines := input.LineSlice()
+func FromInputOf[T comparable](input io.Reader, convert func(rune) T) *Map[T] {
+	lines := slices.Collect(challenge.Lines(input))
 
 	m := Of[T](len(lines[0]), len(lines))
 
@@ -133,14 +136,14 @@ func (t *Map[T]) indexOf(x, y int) (int, bool) {
 	return x + (t.w * y), !t.outOfBounds(x, y)
 }
 
-// SetTile stores the specified tile at location (x,y) in the tile map
+// SetTile stores the specified tile at location (X,Y) in the tile map
 func (t *Map[T]) SetTile(x, y int, tile T) {
 	idx, ok := t.indexOf(x, y)
 	if !ok {
 		panic(fmt.Errorf("out of bounds tile access: [%d, %d] is not within the %dx%d map", x, y, t.w, t.h))
 	}
 
-	t.tiles[idx] = Container[T]{tileMap: t, Value: tile, x: x, y: y}
+	t.tiles[idx] = Container[T]{tileMap: t, Value: tile, position: Point{x, y}}
 }
 
 // ContainerAt returns the tile container at the specified coordinates in the tile map
@@ -179,53 +182,71 @@ func (t *Map[T]) AllContainersWith(v T) (results []Container[T]) {
 	return results
 }
 
-// Walk iterates over all values in the map starting at 0,0 one row at a time. Each tile will be visited exactly once.
+// Values returns an iter.Seq2 over all values in the map starting at 0,0 one row at a time. Each tile will be visited
+// exactly once.
 //
 // It is OK to change the value of tiles while walking.
-func (t *Map[T]) Walk(visit func(T, int, int)) {
-	for i, c := range t.tiles {
-		visit(c.Value, i%t.w, i/t.w)
-	}
-}
-
-// WalkCardinalNeighbors calls the visit function on neighbors directly North, South, East, or West of the specified
-// location in the map, if they also exist in the map.
-//
-// It is OK to change the value of tiles while walking.
-func (t *Map[T]) WalkCardinalNeighbors(x, y int, visit func(T, int, int)) {
-	for _, d := range []struct {
-		x, y int
-	}{
-		{-1, 0},
-		{1, 0},
-		{0, -1},
-		{0, 1},
-	} {
-		if r, ok := t.TileAt(x+d.x, y+d.y); ok {
-			visit(r, x+d.x, y+d.y)
+func (t *Map[T]) Values() iter.Seq2[T, Point] {
+	return func(yield func(T, Point) bool) {
+		for i, c := range t.tiles {
+			if !yield(c.Value, Point{i % t.w, i / t.w}) {
+				return
+			}
 		}
 	}
 }
 
-// WalkAllNeighbors calls the visit function on the 8 surrounding tiles of the specified tile, if they also exist in the
-// map.
+// CardinalNeighbors returns an iter.Seq2 over neighbors directly North, South, East, or West of the specified location
+// in the map, if they also exist in the map.
 //
-// It is OK to change the value of tiles while walking.
-func (t *Map[T]) WalkAllNeighbors(x, y int, visit func(T, int, int)) {
-	// Start by walking cardinals
-	t.WalkCardinalNeighbors(x, y, visit)
+// It is OK to change the value of tiles while iterating the returned sequence, but tiles should not be added to or
+// removed from the map while iterating.
+func (t *Map[T]) CardinalNeighbors(x, y int) iter.Seq2[T, Point] {
+	return func(yield func(T, Point) bool) {
+		for _, d := range []struct {
+			x, y int
+		}{
+			{-1, 0},
+			{1, 0},
+			{0, -1},
+			{0, 1},
+		} {
+			if r, ok := t.TileAt(x+d.x, y+d.y); ok {
+				if !yield(r, Point{x + d.x, y + d.y}) {
+					return
+				}
+			}
+		}
+	}
+}
 
-	// Then Walk diagonals
-	for _, d := range []struct {
-		x, y int
-	}{
-		{-1, -1},
-		{-1, 1},
-		{1, -1},
-		{1, 1},
-	} {
-		if r, ok := t.TileAt(x+d.x, y+d.y); ok {
-			visit(r, x+d.x, y+d.y)
+// AllNeighbors returns an iter.Seq2 over the 8 surrounding tiles of the specified tile, if they also exist in the map.
+//
+// It is OK to change the value of tiles while iterating the returned sequence, but tiles should not be added to or
+// removed from the map while iterating.
+func (t *Map[T]) AllNeighbors(x, y int) iter.Seq2[T, Point] {
+	return func(yield func(T, Point) bool) {
+		// Start by walking cardinals
+		for v, pos := range t.CardinalNeighbors(x, y) {
+			if !yield(v, pos) {
+				return
+			}
+		}
+
+		// Then Walk diagonals
+		for _, d := range []struct {
+			x, y int
+		}{
+			{-1, -1},
+			{-1, 1},
+			{1, -1},
+			{1, 1},
+		} {
+			if r, ok := t.TileAt(x+d.x, y+d.y); ok {
+				if !yield(r, Point{x + d.x, y + d.y}) {
+					return
+				}
+			}
 		}
 	}
 }

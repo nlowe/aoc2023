@@ -2,6 +2,7 @@ package day3
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/spf13/cobra"
 
@@ -14,18 +15,18 @@ func bCommand() *cobra.Command {
 		Use:   "b",
 		Short: "Day 3, Problem B",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("Answer: %d\n", partB(challenge.FromFile()))
+			fmt.Printf("Answer: %d\n", partB(challenge.InputFile()))
 		},
 	}
 }
 
-func partB(challenge *challenge.Input) int {
+func partB(input io.Reader) int {
 	var sum int
 
-	schema := tilemap.FromInput(challenge)
-	schema.Walk(func(_ rune, x int, y int) {
-		sum += ratio(schema, x, y)
-	})
+	schema := tilemap.FromInput(input)
+	for _, pos := range schema.Values() {
+		sum += ratio(schema, pos.X, pos.Y)
+	}
 
 	return sum
 }
@@ -36,29 +37,29 @@ func ratio(schema *tilemap.Map[rune], x, y int) int {
 		return 0
 	}
 
-	var adjacent []int
+	adjacent := make([]int, 0, 8)
 
 	w, h := schema.Size()
 	seen := tilemap.Of[bool](w, h)
 
-	schema.WalkAllNeighbors(x, y, func(r rune, cx int, cy int) {
-		if candidate, ok := schema.TileAt(cx, cy); !ok || candidate < '0' || candidate > '9' {
+	for _, pos := range schema.AllNeighbors(x, y) {
+		if candidate, ok := schema.TileAt(pos.X, pos.Y); !ok || candidate < '0' || candidate > '9' {
 			// Outside the map or not a digit
-			return
+			continue
 		}
 
-		if seenAlready, _ := seen.TileAt(cx, cy); seenAlready {
+		if seenAlready, _ := seen.TileAt(pos.X, pos.Y); seenAlready {
 			// This digit belongs to a number we've already seen
-			return
+			continue
 		}
 
-		v, start, end := extractNumber(schema, cx, cy)
+		v, start, end := extractNumber(schema, pos.X, pos.Y)
 		adjacent = append(adjacent, v)
 		for nx := start; nx <= end; nx++ {
 			// Mark the digits of this number so we don't double-count them
-			seen.SetTile(nx, cy, true)
+			seen.SetTile(nx, pos.Y, true)
 		}
-	})
+	}
 
 	// If there aren't exactly two adjacent numbers, this isn't a gear so return a ratio of 0
 	if len(adjacent) != 2 {

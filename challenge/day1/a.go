@@ -2,6 +2,7 @@ package day1
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/spf13/cobra"
 
@@ -13,19 +14,19 @@ func aCommand() *cobra.Command {
 		Use:   "a",
 		Short: "Day 1, Problem A",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("Answer: %d\n", partA(challenge.FromFile()))
+			fmt.Printf("Answer: %d\n", partA(challenge.InputFile()))
 		},
 	}
 }
 
-func partA(challenge *challenge.Input) int {
-	return sum(challenge, extractDigit)
+func partA(input io.Reader) int {
+	return sum(input, extractDigit)
 }
 
-func sum(challenge *challenge.Input, extract func(string) (int, bool)) int {
+func sum(input io.Reader, extract func(string) (int, bool)) int {
 	var answer int
 
-	for line := range challenge.Lines() {
+	for line := range challenge.Lines(input) {
 		var v int
 		for i := 0; i < len(line); i++ {
 			if vv, ok := extract(line[i:]); ok {

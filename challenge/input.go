@@ -3,6 +3,7 @@ package challenge
 import (
 	"bufio"
 	"io"
+	"iter"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -13,13 +14,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Input struct {
-	scanner *bufio.Scanner
-
-	lines chan string
-}
-
-func FromFile() *Input {
+// InputFile returns an io.Reader for the file pointed at by the --input flag. If the flag is not specified, it looks
+// for a file named "input.txt" in the same package as the caller.
+func InputFile() io.Reader {
 	path := viper.GetString("input")
 	if path == "" {
 		_, f, _, ok := runtime.Caller(1)
@@ -30,56 +27,50 @@ func FromFile() *Input {
 		path = filepath.Join(filepath.Dir(f), "input.txt")
 	}
 
-	f, err := os.Open(path)
+	r, err := os.Open(path)
 	if err != nil {
 		panic(err)
 	}
 
-	return newInputFromReader(f, f)
+	return r
 }
 
-func FromLiteral(input string) *Input {
-	return newInputFromReader(strings.NewReader(input), nil)
-}
+// Lines returns an iter.Seq[string] over all lines in the provided io.Reader.
+func Lines(r io.Reader) iter.Seq[string] {
+	scanner := bufio.NewScanner(r)
 
-func newInputFromReader(r io.Reader, c io.Closer) *Input {
-	result := &Input{
-		scanner: bufio.NewScanner(r),
-		lines:   make(chan string),
-	}
-
-	go func() {
-		defer func() {
-			if c != nil {
-				_ = c.Close()
+	return func(yield func(string) bool) {
+		for scanner.Scan() {
+			if err := scanner.Err(); err != nil && err != io.EOF {
+				panic(err)
 			}
-		}()
 
-		for result.scanner.Scan() {
-			result.lines <- result.scanner.Text()
+			if !yield(scanner.Text()) {
+				return
+			}
 		}
-
-		close(result.lines)
-	}()
-
-	return result
+	}
 }
 
-func (c *Input) Lines() <-chan string {
-	return c.lines
-}
+// Sections returns an iter.Seq[string] over all blocks of lines in the provided io.Reader. Blocks of lines have at
+// least one extra newline separating them.
+func Sections(r io.Reader) iter.Seq[string] {
+	scanner := bufio.NewScanner(r)
+	var section strings.Builder
 
-func (c *Input) Sections() <-chan string {
-	sections := make(chan string)
-	go func() {
-		defer close(sections)
-		section := strings.Builder{}
+	return func(yield func(string) bool) {
+		for scanner.Scan() {
+			if err := scanner.Err(); err != nil && err != io.EOF {
+				panic(err)
+			}
 
-		for line := range c.lines {
+			line := scanner.Text()
 			section.WriteString(line)
 
 			if line == "" {
-				sections <- strings.TrimSpace(section.String())
+				if !yield(strings.TrimSpace(section.String())) {
+					return
+				}
 				section.Reset()
 			} else {
 				section.WriteRune('\n')
@@ -87,47 +78,25 @@ func (c *Input) Sections() <-chan string {
 		}
 
 		if section.Len() != 0 {
-			sections <- strings.TrimSpace(section.String())
+			yield(section.String())
 		}
-	}()
-
-	return sections
+	}
 }
 
-func (c *Input) Ints() <-chan int {
-	result := make(chan int)
+// Ints returns an iter.Seq[int] over all lines in the provided io.Reader, converting each line to an int. This method
+// panics if conversion of any line fails.
+func Ints(r io.Reader) iter.Seq[int] {
+	scanner := bufio.NewScanner(r)
+	return func(yield func(int) bool) {
+		for scanner.Scan() {
+			err := scanner.Err()
+			if err != nil && err != io.EOF {
+				panic(err)
+			}
 
-	go func() {
-		defer close(result)
-
-		for line := range c.lines {
-			result <- util.MustAtoI(line)
+			if !yield(util.MustAtoI(scanner.Text())) {
+				return
+			}
 		}
-	}()
-
-	return result
-}
-
-func (c *Input) LineSlice() (result []string) {
-	for line := range c.Lines() {
-		result = append(result, line)
 	}
-
-	return
-}
-
-func (c *Input) IntSlice() (result []int) {
-	for line := range c.Lines() {
-		result = append(result, util.MustAtoI(line))
-	}
-
-	return
-}
-
-func (c *Input) SectionSlice() (result []string) {
-	for section := range c.Sections() {
-		result = append(result, section)
-	}
-
-	return
 }

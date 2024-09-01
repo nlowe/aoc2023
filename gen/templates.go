@@ -95,6 +95,7 @@ func AddCommandsTo(root *cobra.Command) {
 
 import (
     "fmt"
+    "io"
 
     "github.com/nlowe/aoc2023/challenge"
 	"github.com/nlowe/aoc2023/util"
@@ -106,12 +107,12 @@ func {{ .AB | toLower }}Command() *cobra.Command {
         Use:   "{{ .AB | toLower }}",
         Short: "Day {{ .N }}, Problem {{ .AB }}",
         Run: func(_ *cobra.Command, _ []string) {
-            fmt.Printf("Answer: %d\n", part{{ .AB | toUpper }}(challenge.FromFile()))
+            fmt.Printf("Answer: %d\n", part{{ .AB | toUpper }}(challenge.InputFile()))
         },
     }
 }
 
-func part{{ .AB | toUpper }}(challenge *challenge.Input) int {
+func part{{ .AB | toUpper }}(input io.Reader) int {
     panic("Not implemented!")
 }
 `
@@ -128,7 +129,7 @@ import (
 func Test{{ .AB }}(t *testing.T) {
 	t.Skip("Not Implemented")
 
-	input := challenge.FromLiteral("foobar")
+	input := strings.NewReader("foobar")
 
 	result := part{{ .AB | toUpper }}(input)
 
@@ -146,13 +147,13 @@ import (
 
 func BenchmarkA(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = partA(challenge.FromFile())
+		_ = partA(challenge.InputFile())
 	}
 }
 
 func BenchmarkB(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = partB(challenge.FromFile())
+		_ = partB(challenge.InputFile())
 	}
 }`
 )

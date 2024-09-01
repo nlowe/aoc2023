@@ -1,11 +1,10 @@
 package day5
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/nlowe/aoc2023/challenge"
 )
 
 const example = `seeds: 79 14 55 13
@@ -44,7 +43,7 @@ humidity-to-location map:
 
 func TestA(t *testing.T) {
 	t.Skipf("re-factoring part a to solve part b, this test doesn't work right now")
-	input := challenge.FromLiteral(example)
+	input := strings.NewReader(example)
 
 	result := partA(input)
 

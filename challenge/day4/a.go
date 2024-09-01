@@ -2,6 +2,7 @@ package day4
 
 import (
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 
@@ -15,15 +16,15 @@ func aCommand() *cobra.Command {
 		Use:   "a",
 		Short: "Day 4, Problem A",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("Answer: %d\n", partA(challenge.FromFile()))
+			fmt.Printf("Answer: %d\n", partA(challenge.InputFile()))
 		},
 	}
 }
 
-func partA(challenge *challenge.Input) int {
+func partA(input io.Reader) int {
 	var sum int
 
-	for card := range challenge.Lines() {
+	for card := range challenge.Lines(input) {
 		if have := scratchOff(card); have > 0 {
 			// A winning card starts with a base score of 1, and each matching number we have doubles its score
 			// This is easy to calculate by shifting a one by one-less than the number of matches we have

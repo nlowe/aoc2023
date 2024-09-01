@@ -2,6 +2,7 @@ package day3
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/spf13/cobra"
 
@@ -14,47 +15,47 @@ func aCommand() *cobra.Command {
 		Use:   "a",
 		Short: "Day 3, Problem A",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("Answer: %d\n", partA(challenge.FromFile()))
+			fmt.Printf("Answer: %d\n", partA(challenge.InputFile()))
 		},
 	}
 }
 
-func partA(challenge *challenge.Input) int {
+func partA(input io.Reader) int {
 	var sum int
-	schema := tilemap.FromInput(challenge)
+	schema := tilemap.FromInput(input)
 
-	schema.Walk(func(r rune, x, y int) {
+	for r, pos := range schema.Values() {
 		// Skip this tile if it's not a number
 		if r < '0' || r > '9' {
-			return
+			continue
 		}
 
 		// Skip this tile if it doesn't have adjacent symbols
-		if !hasAdjacentSymbol(schema, x, y) {
-			return
+		if !hasAdjacentSymbol(schema, pos.X, pos.Y) {
+			continue
 		}
 
 		// Otherwise, we found a "part number"
-		v, start, end := extractNumber(schema, x, y)
+		v, start, end := extractNumber(schema, pos.X, pos.Y)
 
 		sum += v
 		for nx := start; nx <= end; nx++ {
 			// Consume this part number by masking it out so we don't double count
-			schema.SetTile(nx, y, '.')
+			schema.SetTile(nx, pos.Y, '.')
 		}
-	})
+	}
 
 	return sum
 }
 
-func hasAdjacentSymbol(schema *tilemap.Map[rune], x, y int) (result bool) {
-	schema.WalkAllNeighbors(x, y, func(r rune, _ int, _ int) {
+func hasAdjacentSymbol(schema *tilemap.Map[rune], x, y int) bool {
+	for r := range schema.AllNeighbors(x, y) {
 		if r != '.' && !(r >= '0' && r <= '9') {
-			result = true
+			return true
 		}
-	})
+	}
 
-	return result
+	return false
 }
 
 func extractNumber(schema *tilemap.Map[rune], x, y int) (int, int, int) {

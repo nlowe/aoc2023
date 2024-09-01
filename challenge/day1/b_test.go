@@ -1,15 +1,14 @@
 package day1
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/nlowe/aoc2023/challenge"
 )
 
 func TestB(t *testing.T) {
-	input := challenge.FromLiteral(`two1nine
+	input := strings.NewReader(`two1nine
 eightwothree
 abcone2threexyz
 xtwone3four

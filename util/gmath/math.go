@@ -36,7 +36,7 @@ func Min[T Number](a, b T) T {
 
 func Clamp[T Number](low, n, high T) T {
 	if low > high {
-		panic(fmt.Errorf("Clamp: low cannot be > high: %v > %v", low, high))
+		panic(fmt.Errorf("clamp: low cannot be > high: %v > %v", low, high))
 	}
 
 	return Max(Min(n, high), low)

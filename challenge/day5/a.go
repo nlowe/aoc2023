@@ -2,6 +2,8 @@ package day5
 
 import (
 	"fmt"
+	"io"
+	"iter"
 	"slices"
 	"strings"
 
@@ -17,7 +19,7 @@ func aCommand() *cobra.Command {
 		Use:   "a",
 		Short: "Day 5, Problem A",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("Answer: %d\n", partA(challenge.FromFile()))
+			fmt.Printf("Answer: %d\n", partA(challenge.InputFile()))
 		},
 	}
 }
@@ -72,12 +74,13 @@ func convertManyVia(mapping map[span]span, vs []span) []span {
 	return result
 }
 
-func partA(challenge *challenge.Input) int {
-	parts := challenge.Sections()
+func partA(input io.Reader) int {
+	sections, stop := iter.Pull(challenge.Sections(input))
+	defer stop()
 
-	seeds := strings.Fields(<-parts)[1:]
+	seeds := strings.Fields(util.MustPull(sections))[1:]
 
-	converter := makeConverter(parts)
+	converter := makeConverter(sections)
 
 	var locations []span
 	for _, seed := range seeds {
@@ -88,14 +91,14 @@ func partA(challenge *challenge.Input) int {
 	return locations[0].start
 }
 
-func makeConverter(parts <-chan string) func(span) []span {
-	seedToSoil := parseMap(<-parts)
-	soilToFertilizer := parseMap(<-parts)
-	fertilizerToWater := parseMap(<-parts)
-	waterToLight := parseMap(<-parts)
-	lightToTemp := parseMap(<-parts)
-	tempToHumidity := parseMap(<-parts)
-	humidityToLocation := parseMap(<-parts)
+func makeConverter(parts func() (string, bool)) func(span) []span {
+	seedToSoil := parseMap(util.MustPull(parts))
+	soilToFertilizer := parseMap(util.MustPull(parts))
+	fertilizerToWater := parseMap(util.MustPull(parts))
+	waterToLight := parseMap(util.MustPull(parts))
+	lightToTemp := parseMap(util.MustPull(parts))
+	tempToHumidity := parseMap(util.MustPull(parts))
+	humidityToLocation := parseMap(util.MustPull(parts))
 
 	return func(seed span) []span {
 		v := convertVia(seedToSoil, seed)

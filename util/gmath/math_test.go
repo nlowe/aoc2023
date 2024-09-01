@@ -66,7 +66,7 @@ func TestIntClamp(t *testing.T) {
 	}
 
 	t.Run("Panics if low > high", func(t *testing.T) {
-		assert.PanicsWithError(t, "Clamp: low cannot be > high: 2 > 1", func() {
+		assert.PanicsWithError(t, "clamp: low cannot be > high: 2 > 1", func() {
 			_ = Clamp(2, 0, 1)
 		})
 	})

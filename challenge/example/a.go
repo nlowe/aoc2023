@@ -2,10 +2,12 @@ package example
 
 import (
 	"fmt"
+	"io"
+
+	"github.com/spf13/cobra"
 
 	"github.com/nlowe/aoc2023/challenge"
 	"github.com/nlowe/aoc2023/util"
-	"github.com/spf13/cobra"
 )
 
 func aCommand() *cobra.Command {
@@ -13,11 +15,13 @@ func aCommand() *cobra.Command {
 		Use:   "a",
 		Short: "Example Day, Problem A",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("Answer: %d\n", a(challenge.FromFile()))
+			fmt.Printf("Answer: %d\n", a(challenge.InputFile()))
 		},
 	}
 }
 
-func a(input *challenge.Input) (result int) {
-	return util.MustAtoI(<-input.Lines())
+func a(input io.Reader) (result int) {
+	v, _ := util.First(challenge.Ints(input))
+
+	return v
 }

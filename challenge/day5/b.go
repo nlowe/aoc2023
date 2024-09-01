@@ -2,14 +2,15 @@ package day5
 
 import (
 	"fmt"
+	"io"
+	"iter"
 	"slices"
 	"strings"
-
-	"github.com/nlowe/aoc2023/util"
 
 	"github.com/spf13/cobra"
 
 	"github.com/nlowe/aoc2023/challenge"
+	"github.com/nlowe/aoc2023/util"
 )
 
 func bCommand() *cobra.Command {
@@ -17,15 +18,16 @@ func bCommand() *cobra.Command {
 		Use:   "b",
 		Short: "Day 5, Problem B",
 		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Printf("Answer: %d\n", partB(challenge.FromFile()))
+			fmt.Printf("Answer: %d\n", partB(challenge.InputFile()))
 		},
 	}
 }
 
-func partB(challenge *challenge.Input) int {
-	parts := challenge.Sections()
+func partB(input io.Reader) int {
+	sections, stop := iter.Pull(challenge.Sections(input))
+	defer stop()
 
-	seeds := strings.Fields(<-parts)[1:]
+	seeds := strings.Fields(util.MustPull(sections))[1:]
 
 	seedRanges := make([]span, len(seeds)/2)
 	for i := range seedRanges {
@@ -34,7 +36,7 @@ func partB(challenge *challenge.Input) int {
 		}
 	}
 
-	converter := makeConverter(parts)
+	converter := makeConverter(sections)
 
 	var locations []span
 	for _, seed := range seedRanges {

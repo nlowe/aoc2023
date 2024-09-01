@@ -1,11 +1,10 @@
 package day4
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/nlowe/aoc2023/challenge"
 )
 
 const example = `Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
@@ -16,7 +15,7 @@ Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
 Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11`
 
 func TestA(t *testing.T) {
-	input := challenge.FromLiteral(example)
+	input := strings.NewReader(example)
 
 	result := partA(input)
 

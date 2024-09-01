@@ -1,6 +1,6 @@
 module github.com/nlowe/aoc2023
 
-go 1.21
+go 1.23
 
 require (
 	github.com/beefsack/go-astar v0.0.0-20200827232313-4ecf9e304482

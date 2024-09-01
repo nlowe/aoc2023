@@ -1,14 +1,14 @@
 package example
 
 import (
+	"strings"
 	"testing"
 
-	"github.com/nlowe/aoc2023/challenge"
 	"github.com/stretchr/testify/require"
 )
 
 func TestA(t *testing.T) {
-	input := challenge.FromLiteral("42")
+	input := strings.NewReader("42")
 
 	result := a(input)
 
